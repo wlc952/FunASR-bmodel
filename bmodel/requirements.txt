@@ -1,0 +1,10 @@
+torchaudio
+tqdm
+torch_complex
+rotary_embedding_torch
+omegaconf
+kaldiio
+librosa
+hydra-core
+umap-learn
+six

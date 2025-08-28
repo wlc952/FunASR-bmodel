@@ -1,0 +1,38 @@
+[project]
+name = "funasr-bmodel"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "dfss>=1.10.4",
+    "hydra-core>=1.3.2",
+    "kaldiio>=2.18.1",
+    "librosa>=0.11.0",
+    "omegaconf>=2.3.0",
+    "rotary-embedding-torch>=0.8.9",
+    "six>=1.17.0",
+    "torch-complex>=0.4.4",
+    "torchaudio>=2.5.1",
+    "tqdm>=4.67.1",
+    "umap-learn>=0.5.7",
+]
+
+
+[tool.uv.sources]
+torch = { index = "pytorch" }
+torchvision = { index = "pytorch" }
+torchaudio = { index = "pytorch" }
+
+[tool.uv]
+python-downloads = "automatic"
+python-install-mirror = "https://ghfast.top/github.com/indygreg/python-build-standalone/releases/download"
+
+[[tool.uv.index]]
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
+default = true
+
+[[tool.uv.index]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
