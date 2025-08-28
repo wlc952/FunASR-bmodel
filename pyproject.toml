@@ -14,6 +14,7 @@ dependencies = [
     "six>=1.17.0",
     "torch-complex>=0.4.4",
     "torchaudio>=2.5.1",
+    "tpu-perf",
     "tqdm>=4.67.1",
     "umap-learn>=0.5.7",
 ]
@@ -23,6 +24,7 @@ dependencies = [
 torch = { index = "pytorch" }
 torchvision = { index = "pytorch" }
 torchaudio = { index = "pytorch" }
+tpu-perf = { path = "bmodel/tpu_perf-1.2.35-py3-none-manylinux2014_aarch64.whl" }
 
 [tool.uv]
 python-downloads = "automatic"

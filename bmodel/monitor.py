@@ -320,16 +320,16 @@ class ASRWorker:
 			try:
 				seg_pcm, sr = load_wav(wav_path)
 				seg_pcm, _ = _ensure_mono_16k(seg_pcm, sr)
-				# 在参考音与片段之间加入静音，使总时长至少 20s；同时保证最小 1s 间隔
-				ref_len = len(self.system_ref_pcm)
+				ref = self.system_ref_pcm
+				ref_len = len(ref)
 				seg_len = len(seg_pcm)
 				min_gap = 16000  # 1s
 				required_total = 320000  # 20s
-				base_total = ref_len + seg_len
-				need = max(0, required_total - base_total)
-				sil_len = max(min_gap, need)
-				sil = np.zeros(sil_len, dtype=np.float32)
-				cat = np.concatenate([self.system_ref_pcm, sil, seg_pcm])
+				parts = [ref, np.zeros(min_gap, dtype=np.float32), seg_pcm, np.zeros(min_gap, dtype=np.float32)]
+				total_len = ref_len + 2*min_gap + seg_len
+				if total_len < required_total:
+					parts.extend([seg_pcm[:required_total - total_len]])
+				cat = np.concatenate(parts)
 				with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tf:
 					tmp_path = Path(tf.name)
 				write_wav(tmp_path, cat, 16000)
@@ -351,7 +351,6 @@ class ASRWorker:
 		规则：
 		- 使用参考音时，跳过第一个句子的判断；
 		- 若任一句子的 spk 不在 system_spk_ids，直接报警；
-		- 若全部是系统 spk，再逐句校验文本与 system_words 的匹配，不匹配则报警；
 		- 若无句级信息，回退整段文本匹配。
 		"""
 		summary_text = asr_out.get("text", "") or ""
