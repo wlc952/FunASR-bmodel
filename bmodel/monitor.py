@@ -13,11 +13,11 @@
     --rtsp rtsp://user:pass@ip:554/Streaming/Channels/101 \
     --system-audio /data/FunASR-bmodel/system_ref.wav \
     --chunk-seconds 10 \
-    --out-dir /data/alarms
+    --out-dir /data/alarm
 
 注意：
 - 本机需已安装 ffmpeg 且可访问 RTSP。
-- nginx 已将 /data/alarms 映射至 http://<ip>/static/。
+- nginx 已将 /data/alarm 映射至 http://<ip>/static/。
 """
 
 import argparse
@@ -122,9 +122,6 @@ class RtspSegmenter:
             "5000000",  # 5s
             "-i",
             self.rtsp_url,
-            # 显式映射视频和可选音频，避免无音频时报错
-            "-map", "0:v:0",
-            "-map", "0:a:0?",
             # 保留视频原编码，音频转为 aac 以保证 mp4 兼容，避免部分摄像头的 G.711 无法封装
             "-c:v",
             "copy",
@@ -141,8 +138,6 @@ class RtspSegmenter:
             str(self.segment_time),
             "-strftime",
             "1",
-            # 让分段 mp4 写入 faststart，降低“读早了”的失败概率
-            "-segment_format_options", "movflags=+faststart",
             pattern,
         ]
         return cmd
@@ -246,11 +241,16 @@ def concat_wav(sys_wav: str, seg_wav: str, out_wav: str, timeout: int = 15) -> b
     cmd = [
         "ffmpeg",
         "-y",
-        "-i", sys_wav,
-		"-i", sys_wav,
-        "-i", seg_wav,
-        "-filter_complex", "[0:a][1:a][2:a]concat=n=3:v=0:a=1[a]",
-        "-map", "[a]",
+        "-i",
+        sys_wav,
+        "-i",
+        sys_wav,
+        "-i",
+        seg_wav,
+        "-filter_complex",
+        "[0:a][1:a][2:a]concat=n=3:v=0:a=1[a]",
+        "-map",
+        "[a]",
         out_wav,
     ]
     try:
@@ -263,44 +263,6 @@ def concat_wav(sys_wav: str, seg_wav: str, out_wav: str, timeout: int = 15) -> b
         return False
     except Exception:
         return False
-
-
-# 使用 ffprobe 校验分段是否含有可读音频流
-def ffprobe_audio_ok(mp4_path: str, timeout: int = 5) -> Tuple[bool, str]:
-    cmd = [
-        "ffprobe", "-hide_banner", "-v", "error",
-        "-show_streams", "-select_streams", "a",
-        "-show_format", "-of", "json",
-        mp4_path,
-    ]
-    try:
-        r = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, timeout=timeout)
-        if r.returncode != 0:
-            return False, (r.stderr.decode("utf-8", errors="ignore").strip() or "ffprobe failed")
-        raw = r.stdout.decode("utf-8", errors="ignore")
-        try:
-            j = json.loads(raw or "{}")
-        except json.JSONDecodeError:
-            # 某些 ffprobe 版本/异常情况下会输出非 JSON 文本到 stdout。
-            # 在此放宽校验，允许后续提取流程继续处理。
-            return True, "ffprobe json parse fail, proceed"
-        streams = j.get("streams") or []
-        fmt = j.get("format") or {}
-        has_audio = any(s.get("codec_type") == "audio" for s in streams)
-        v = fmt.get("duration")
-        try:
-            dur = float(v) if v not in (None, "", "N/A") else 0.0
-        except Exception:
-            dur = 0.0
-        if not has_audio:
-            return False, "no audio stream"
-        if dur <= 0:
-            return False, "invalid duration"
-        return True, "ok"
-    except subprocess.TimeoutExpired:
-        return False, "ffprobe timeout"
-    except Exception as e:
-        return False, f"ffprobe ex: {e!r}"
 
 
 # ----------------------------- 告警上报 -----------------------------
@@ -328,11 +290,11 @@ def post_alert(safety_url: str, when: str, timeout: int = 2):
     body_code = None
     body_msg = None
     try:
-        j = r.json()
-        body_code = int(j.get("code")) if "code" in j else None
-        body_msg = str(j.get("msg")) if "msg" in j else None
+    	j = r.json()
+    	body_code = int(j.get("code")) if "code" in j else None
+    	body_msg = str(j.get("msg")) if "msg" in j else None
     except Exception:
-        pass
+    	pass
     return r.status_code, body_code, body_msg
 
 
@@ -474,23 +436,6 @@ class Monitor:
         base = os.path.splitext(os.path.basename(mp4_path))[0]
         wav_path = os.path.join(self.dir_audio_tmp, base + ".wav")
         joined_wav = os.path.join(self.dir_audio_tmp, base + "_joined.wav")
-
-        # 先等文件可读且含音频，最多等待 ~3s
-        ok = False
-        reason = ""
-        for _ in range(6):
-            ok, reason = ffprobe_audio_ok(mp4_path, timeout=2)
-            if ok:
-                break
-            time.sleep(0.5)
-        if not ok:
-            print(f"[monitor] 分段不可用，跳过: {os.path.basename(mp4_path)} => {reason}")
-            try:
-                if os.path.exists(mp4_path):
-                    os.remove(mp4_path)
-            except Exception:
-                pass
-            return
 
         if not extract_wav_from_mp4(mp4_path, wav_path, timeout=self.ffmpeg_timeout):
             print(f"[monitor] 提取音频失败: {mp4_path}")
