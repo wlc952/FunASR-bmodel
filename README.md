@@ -6,7 +6,8 @@
 uv sync
 source .venv/bin/activate
 
+bash download.sh
+
 cd bmodel
-#下载模型后运行下面命令
 python monitor.py --input input.wav --system_ref system_ref.wav 
 ```

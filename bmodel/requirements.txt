@@ -8,3 +8,4 @@ librosa
 hydra-core
 umap-learn
 six
+requests
