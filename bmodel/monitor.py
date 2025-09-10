@@ -290,11 +290,11 @@ def post_alert(safety_url: str, when: str, timeout: int = 2):
     body_code = None
     body_msg = None
     try:
-    	j = r.json()
-    	body_code = int(j.get("code")) if "code" in j else None
-    	body_msg = str(j.get("msg")) if "msg" in j else None
+        j = r.json()
+        body_code = int(j.get("code")) if "code" in j else None
+        body_msg = str(j.get("msg")) if "msg" in j else None
     except Exception:
-    	pass
+        pass
     return r.status_code, body_code, body_msg
 
 

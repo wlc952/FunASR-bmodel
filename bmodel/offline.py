@@ -7,12 +7,7 @@ from funasr import AutoModel
 import time
 import multiprocessing 
 
-file_path1 = "/data/FunASR-bmodel/在无照明的道路行驶.wav"
-file_path2 = "/data/FunASR-bmodel/在有信号灯控制路口转弯.wav"
-file_path3 = "/data/FunASR-bmodel/在照明不良的道路行驶.wav"
-file_path4 = "/data/FunASR-bmodel/在照明良好的道路上行驶.wav"
-
-
+file_path1 = "system_ref.wav"
 
 dev_id = 0
 target = "BM1684X"
@@ -32,39 +27,6 @@ model = AutoModel(
 # inference
 start_time = time.time()
 res = model.generate(input=file_path1, batch_size_s=300,)
-end_time = time.time()
-if "sentence_info" in res[0].keys():
-    for si in res[0]["sentence_info"]:
-        print("["+format(si["start"],"7d")+"]["+format(si["end"],"7d")+"], spk="+format(si["spk"],'2d')+", text: "+si["text"])
-else:
-    print(res[0]["text"])
-print("generate time:", end_time-start_time)
-
-# inference
-start_time = time.time()
-res = model.generate(input=file_path2, batch_size_s=300,)
-end_time = time.time()
-if "sentence_info" in res[0].keys():
-    for si in res[0]["sentence_info"]:
-        print("["+format(si["start"],"7d")+"]["+format(si["end"],"7d")+"], spk="+format(si["spk"],'2d')+", text: "+si["text"])
-else:
-    print(res[0]["text"])
-print("generate time:", end_time-start_time)
-
-# inference
-start_time = time.time()
-res = model.generate(input=file_path3, batch_size_s=300,)
-end_time = time.time()
-if "sentence_info" in res[0].keys():
-    for si in res[0]["sentence_info"]:
-        print("["+format(si["start"],"7d")+"]["+format(si["end"],"7d")+"], spk="+format(si["spk"],'2d')+", text: "+si["text"])
-else:
-    print(res[0]["text"])
-print("generate time:", end_time-start_time)
-
-# inference
-start_time = time.time()
-res = model.generate(input=file_path4, batch_size_s=300,)
 end_time = time.time()
 if "sentence_info" in res[0].keys():
     for si in res[0]["sentence_info"]:
